@@ -10255,6 +10255,17 @@ try {
 /***/ (function(module, exports) {
 
 // Global app controller
+var dupa = function dupa() {
+  for (var _len = arguments.length, par = new Array(_len), _key = 0; _key < _len; _key++) {
+    par[_key] = arguments[_key];
+  }
+
+  return par.reduce(function (a, b) {
+    return a + b;
+  });
+};
+
+console.log(dupa(1, 2, 3, 4, 5));
 
 /***/ }),
 
