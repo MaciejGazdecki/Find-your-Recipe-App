@@ -1,7 +1,7 @@
 import style from '../sass/main.scss';
 import Search from "./modules/Search";
 import * as SearchView from "./views/searchView";
-import {elements} from "./views/base";
+import {elements, renderLoader, clearLoader } from "./views/base";
 
 
 // Global State of the app:
@@ -21,10 +21,12 @@ const controlSearch = async () => {
         //prepare UI for results
         SearchView.clearInput();
         SearchView.clearList();
+        renderLoader(elements.searchRes);
         // search for recipes
         await state.search.getResults();
         //render recipes in UI
         SearchView.renderResult(state.search.result);
+        clearLoader();
     }
 };
 
