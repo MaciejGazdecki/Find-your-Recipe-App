@@ -1,6 +1,7 @@
 import style from '../sass/main.scss';
 import Search from "./modules/Search";
 import * as SearchView from "./views/searchView";
+import * as RecipeView from "./views/recipeView"
 import {elements, renderLoader, clearLoader } from "./views/base";
 import Recipe from "./modules/Recipe";
 
@@ -60,7 +61,8 @@ const controlRecipe = async () => {
     console.log(id);
     if (id) {
         //Prepare UI for changes
-
+        renderLoader(elements.recipe);
+        RecipeView.clearRecipe();
         //Create new Recipe Object
         state.recipe = new Recipe(id);
         // window.r = state.recipe;
@@ -72,7 +74,8 @@ const controlRecipe = async () => {
             state.recipe.calcTime();
             state.recipe.calcServings();
             // Render Recipe
-            console.log(state.recipe);
+            clearLoader();
+            RecipeView.renderRecipe(state.recipe);
         } catch (e) {
             alert('Error processing recipe')
         }
