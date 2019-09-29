@@ -11,6 +11,13 @@ export const clearList = () => {
   elements.searchResPages.innerHTML = '';
 };
 
+export const highlightSelected = id => {
+  const resultsArr = document.querySelectorAll('.results__link');
+  resultsArr.forEach(el => el.classList.remove('results__link--active'));
+  document.querySelector(`a[href*="${id}"]`).classList.add('results__link--active');
+};
+
+
 const limitRecipeTitle = (title, limit = 17) => {
   const newTitle = [];
   if (title.length > limit) {
@@ -42,7 +49,7 @@ const renderRecipe = recipe => {
   `;
   elements.searchResultList.insertAdjacentHTML('beforeend', markup);
 };
-
+//all pagination functions
 const createButton = (page, type) => `
   <button class="btn-inline results__btn--${type}" data-goto="${type === 'prev' ? page -1 : page +1}">
       <svg class="search__icon">
