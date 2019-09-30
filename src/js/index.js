@@ -4,6 +4,7 @@ import * as SearchView from "./views/searchView";
 import * as RecipeView from "./views/recipeView"
 import {elements, renderLoader, clearLoader } from "./views/base";
 import Recipe from "./modules/Recipe";
+import List from "./modules/List";
 
 
 // Global State of the app:
@@ -87,3 +88,19 @@ const controlRecipe = async () => {
     }
 };
 ['hashchange','load'].forEach(event => window.addEventListener(event,controlRecipe));
+
+//Handling recipe buttons
+
+elements.recipe.addEventListener('click', e => {
+    if(e.target.matches('.btn-decrease, .btn-decrease *')) {
+        if(state.recipe.servings >1) {
+            state.recipe.updateServings('dec');
+            RecipeView.updateServingsIngredients(state.recipe)
+        }
+    } else if (e.target.matches('.btn-increase, .btn-increase *')) {
+        state.recipe.updateServings('inc');
+        RecipeView.updateServingsIngredients(state.recipe)
+    }
+});
+
+window.l = new List();

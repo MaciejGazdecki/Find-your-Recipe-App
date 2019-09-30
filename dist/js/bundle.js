@@ -11390,6 +11390,384 @@ function toComment(sourceMap) {
 
 /***/ }),
 
+/***/ "./node_modules/fractional/index.js":
+/*!******************************************!*\
+  !*** ./node_modules/fractional/index.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/*
+fraction.js
+A Javascript fraction library.
+
+Copyright (c) 2009  Erik Garrison <erik@hypervolu.me>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
+
+
+/* Fractions */
+/* 
+ *
+ * Fraction objects are comprised of a numerator and a denomenator.  These
+ * values can be accessed at fraction.numerator and fraction.denomenator.
+ *
+ * Fractions are always returned and stored in lowest-form normalized format.
+ * This is accomplished via Fraction.normalize.
+ *
+ * The following mathematical operations on fractions are supported:
+ *
+ * Fraction.equals
+ * Fraction.add
+ * Fraction.subtract
+ * Fraction.multiply
+ * Fraction.divide
+ *
+ * These operations accept both numbers and fraction objects.  (Best results
+ * are guaranteed when the input is a fraction object.)  They all return a new
+ * Fraction object.
+ *
+ * Usage:
+ *
+ * TODO
+ *
+ */
+
+/*
+ * The Fraction constructor takes one of:
+ *   an explicit numerator (integer) and denominator (integer),
+ *   a string representation of the fraction (string),
+ *   or a floating-point number (float)
+ *
+ * These initialization methods are provided for convenience.  Because of
+ * rounding issues the best results will be given when the fraction is
+ * constructed from an explicit integer numerator and denomenator, and not a
+ * decimal number.
+ *
+ *
+ * e.g. new Fraction(1, 2) --> 1/2
+ *      new Fraction('1/2') --> 1/2
+ *      new Fraction('2 3/4') --> 11/4  (prints as 2 3/4)
+ *
+ */
+Fraction = function(numerator, denominator)
+{
+    /* double argument invocation */
+    if (typeof numerator !== 'undefined' && denominator) {
+        if (typeof(numerator) === 'number' && typeof(denominator) === 'number') {
+            this.numerator = numerator;
+            this.denominator = denominator;
+        } else if (typeof(numerator) === 'string' && typeof(denominator) === 'string') {
+            // what are they?
+            // hmm....
+            // assume they are ints?
+            this.numerator = parseInt(numerator);
+            this.denominator = parseInt(denominator);
+        }
+    /* single-argument invocation */
+    } else if (typeof denominator === 'undefined') {
+        num = numerator; // swap variable names for legibility
+        if (typeof(num) === 'number') {  // just a straight number init
+            this.numerator = num;
+            this.denominator = 1;
+        } else if (typeof(num) === 'string') {
+            var a, b;  // hold the first and second part of the fraction, e.g. a = '1' and b = '2/3' in 1 2/3
+                       // or a = '2/3' and b = undefined if we are just passed a single-part number
+            var arr = num.split(' ')
+            if (arr[0]) a = arr[0]
+            if (arr[1]) b = arr[1]
+            /* compound fraction e.g. 'A B/C' */
+            //  if a is an integer ...
+            if (a % 1 === 0 && b && b.match('/')) {
+                return (new Fraction(a)).add(new Fraction(b));
+            } else if (a && !b) {
+                /* simple fraction e.g. 'A/B' */
+                if (typeof(a) === 'string' && a.match('/')) {
+                    // it's not a whole number... it's actually a fraction without a whole part written
+                    var f = a.split('/');
+                    this.numerator = f[0]; this.denominator = f[1];
+                /* string floating point */
+                } else if (typeof(a) === 'string' && a.match('\.')) {
+                    return new Fraction(parseFloat(a));
+                /* whole number e.g. 'A' */
+                } else { // just passed a whole number as a string
+                    this.numerator = parseInt(a);
+                    this.denominator = 1;
+                }
+            } else {
+                return undefined; // could not parse
+            }
+        }
+    }
+    this.normalize();
+}
+
+
+Fraction.prototype.clone = function()
+{
+    return new Fraction(this.numerator, this.denominator);
+}
+
+
+/* pretty-printer, converts fractions into whole numbers and fractions */
+Fraction.prototype.toString = function()
+{
+    if (this.denominator==='NaN') return 'NaN'
+    var wholepart = (this.numerator/this.denominator>0) ?
+      Math.floor(this.numerator / this.denominator) :
+      Math.ceil(this.numerator / this.denominator)
+    var numerator = this.numerator % this.denominator 
+    var denominator = this.denominator;
+    var result = []; 
+    if (wholepart != 0)  
+        result.push(wholepart);
+    if (numerator != 0)  
+        result.push(((wholepart===0) ? numerator : Math.abs(numerator)) + '/' + denominator);
+    return result.length > 0 ? result.join(' ') : 0;
+}
+
+
+/* destructively rescale the fraction by some integral factor */
+Fraction.prototype.rescale = function(factor)
+{
+    this.numerator *= factor;
+    this.denominator *= factor;
+    return this;
+}
+
+
+Fraction.prototype.add = function(b)
+{
+    var a = this.clone();
+    if (b instanceof Fraction) {
+        b = b.clone();
+    } else {
+        b = new Fraction(b);
+    }
+    td = a.denominator;
+    a.rescale(b.denominator);
+    b.rescale(td);
+
+    a.numerator += b.numerator;
+
+    return a.normalize();
+}
+
+
+Fraction.prototype.subtract = function(b)
+{
+    var a = this.clone();
+    if (b instanceof Fraction) {
+        b = b.clone();  // we scale our argument destructively, so clone
+    } else {
+        b = new Fraction(b);
+    }
+    td = a.denominator;
+    a.rescale(b.denominator);
+    b.rescale(td);
+
+    a.numerator -= b.numerator;
+
+    return a.normalize();
+}
+
+
+Fraction.prototype.multiply = function(b)
+{
+    var a = this.clone();
+    if (b instanceof Fraction)
+    {
+        a.numerator *= b.numerator;
+        a.denominator *= b.denominator;
+    } else if (typeof b === 'number') {
+        a.numerator *= b;
+    } else {
+        return a.multiply(new Fraction(b));
+    }
+    return a.normalize();
+}
+
+Fraction.prototype.divide = function(b)
+{
+    var a = this.clone();
+    if (b instanceof Fraction)
+    {
+        a.numerator *= b.denominator;
+        a.denominator *= b.numerator;
+    } else if (typeof b === 'number') {
+        a.denominator *= b;
+    } else {
+        return a.divide(new Fraction(b));
+    }
+    return a.normalize();
+}
+
+Fraction.prototype.equals = function(b)
+{
+    if (!(b instanceof Fraction)) {
+        b = new Fraction(b);
+    }
+    // fractions that are equal should have equal normalized forms
+    var a = this.clone().normalize();
+    var b = b.clone().normalize();
+    return (a.numerator === b.numerator && a.denominator === b.denominator);
+}
+
+
+/* Utility functions */
+
+/* Destructively normalize the fraction to its smallest representation. 
+ * e.g. 4/16 -> 1/4, 14/28 -> 1/2, etc.
+ * This is called after all math ops.
+ */
+Fraction.prototype.normalize = (function()
+{
+
+    var isFloat = function(n)
+    {
+        return (typeof(n) === 'number' && 
+                ((n > 0 && n % 1 > 0 && n % 1 < 1) || 
+                 (n < 0 && n % -1 < 0 && n % -1 > -1))
+               );
+    }
+
+    var roundToPlaces = function(n, places) 
+    {
+        if (!places) {
+            return Math.round(n);
+        } else {
+            var scalar = Math.pow(10, places);
+            return Math.round(n*scalar)/scalar;
+        }
+    }
+        
+    return (function() {
+
+        // XXX hackish.  Is there a better way to address this issue?
+        //
+        /* first check if we have decimals, and if we do eliminate them
+         * multiply by the 10 ^ number of decimal places in the number
+         * round the number to nine decimal places
+         * to avoid js floating point funnies
+         */
+        if (isFloat(this.denominator)) {
+            var rounded = roundToPlaces(this.denominator, 9);
+            var scaleup = Math.pow(10, rounded.toString().split('.')[1].length);
+            this.denominator = Math.round(this.denominator * scaleup); // this !!! should be a whole number
+            //this.numerator *= scaleup;
+            this.numerator *= scaleup;
+        } 
+        if (isFloat(this.numerator)) {
+            var rounded = roundToPlaces(this.numerator, 9);
+            var scaleup = Math.pow(10, rounded.toString().split('.')[1].length);
+            this.numerator = Math.round(this.numerator * scaleup); // this !!! should be a whole number
+            //this.numerator *= scaleup;
+            this.denominator *= scaleup;
+        }
+        var gcf = Fraction.gcf(this.numerator, this.denominator);
+        this.numerator /= gcf;
+        this.denominator /= gcf;
+        if ((this.numerator < 0 && this.denominator < 0) || (this.numerator > 0 && this.denominator < 0)) {
+            this.numerator *= -1;
+            this.denominator *= -1;
+        }
+        return this;
+    });
+
+})();
+
+
+/* Takes two numbers and returns their greatest common factor.
+ */
+Fraction.gcf = function(a, b)
+{
+
+    var common_factors = [];
+    var fa = Fraction.primeFactors(a);
+    var fb = Fraction.primeFactors(b);
+    // for each factor in fa
+    // if it's also in fb
+    // put it into the common factors
+    fa.forEach(function (factor) 
+    { 
+        var i = fb.indexOf(factor);
+        if (i >= 0) {
+            common_factors.push(factor);
+            fb.splice(i,1); // remove from fb
+        }
+    });
+
+    if (common_factors.length === 0)
+        return 1;
+
+    var gcf = (function() {
+        var r = common_factors[0];
+        var i;
+        for (i=1;i<common_factors.length;i++)
+        {
+            r = r * common_factors[i];
+        }
+        return r;
+    })();
+
+    return gcf;
+
+};
+
+
+// Adapted from: 
+// http://www.btinternet.com/~se16/js/factor.htm
+Fraction.primeFactors = function(n) 
+{
+
+    var num = Math.abs(n);
+    var factors = [];
+    var _factor = 2;  // first potential prime factor
+
+    while (_factor * _factor <= num)  // should we keep looking for factors?
+    {      
+      if (num % _factor === 0)  // this is a factor
+        { 
+            factors.push(_factor);  // so keep it
+            num = num/_factor;  // and divide our search point by it
+        }
+        else
+        {
+            _factor++;  // and increment
+        }
+    }
+
+    if (num != 1)                    // If there is anything left at the end...
+    {                                // ...this must be the last prime factor
+        factors.push(num);           //    so it too should be recorded
+    }
+
+    return factors;                  // Return the prime factors
+}
+
+module.exports.Fraction = Fraction
+
+
+/***/ }),
+
 /***/ "./node_modules/process/browser.js":
 /*!*****************************************!*\
   !*** ./node_modules/process/browser.js ***!
@@ -12628,10 +13006,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _sass_main_scss__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_sass_main_scss__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _modules_Search__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./modules/Search */ "./src/js/modules/Search.js");
 /* harmony import */ var _views_searchView__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./views/searchView */ "./src/js/views/searchView.js");
-/* harmony import */ var _views_base__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./views/base */ "./src/js/views/base.js");
+/* harmony import */ var _views_recipeView__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./views/recipeView */ "./src/js/views/recipeView.js");
+/* harmony import */ var _views_base__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./views/base */ "./src/js/views/base.js");
+/* harmony import */ var _modules_Recipe__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./modules/Recipe */ "./src/js/modules/Recipe.js");
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+
 
 
 
@@ -12642,7 +13024,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 // - shopping list object
 // - linked recipes
 
-var state = {};
+var state = {}; //SEARCH CONTROLLER
 
 var controlSearch =
 /*#__PURE__*/
@@ -12659,7 +13041,7 @@ function () {
             console.log(query);
 
             if (!query) {
-              _context.next = 11;
+              _context.next = 19;
               break;
             }
 
@@ -12668,22 +13050,31 @@ function () {
 
             _views_searchView__WEBPACK_IMPORTED_MODULE_2__["clearInput"]();
             _views_searchView__WEBPACK_IMPORTED_MODULE_2__["clearList"]();
-            Object(_views_base__WEBPACK_IMPORTED_MODULE_3__["renderLoader"])(_views_base__WEBPACK_IMPORTED_MODULE_3__["elements"].searchRes); // search for recipes
-
-            _context.next = 9;
+            Object(_views_base__WEBPACK_IMPORTED_MODULE_4__["renderLoader"])(_views_base__WEBPACK_IMPORTED_MODULE_4__["elements"].searchRes);
+            _context.prev = 7;
+            _context.next = 10;
             return state.search.getResults();
 
-          case 9:
+          case 10:
             //render recipes in UI
             _views_searchView__WEBPACK_IMPORTED_MODULE_2__["renderResult"](state.search.result);
-            Object(_views_base__WEBPACK_IMPORTED_MODULE_3__["clearLoader"])();
+            Object(_views_base__WEBPACK_IMPORTED_MODULE_4__["clearLoader"])();
+            _context.next = 19;
+            break;
 
-          case 11:
+          case 14:
+            _context.prev = 14;
+            _context.t0 = _context["catch"](7);
+            console.log(_context.t0);
+            alert('Something went wrong...');
+            Object(_views_base__WEBPACK_IMPORTED_MODULE_4__["clearLoader"])();
+
+          case 19:
           case "end":
             return _context.stop();
         }
       }
-    }, _callee);
+    }, _callee, null, [[7, 14]]);
   }));
 
   return function controlSearch() {
@@ -12691,10 +13082,265 @@ function () {
   };
 }();
 
-_views_base__WEBPACK_IMPORTED_MODULE_3__["elements"].searchForm.addEventListener('submit', function (evt) {
+_views_base__WEBPACK_IMPORTED_MODULE_4__["elements"].searchForm.addEventListener('submit', function (evt) {
   evt.preventDefault();
   controlSearch();
 });
+_views_base__WEBPACK_IMPORTED_MODULE_4__["elements"].searchResPages.addEventListener('click', function (evt) {
+  var btn = evt.target.closest('.btn-inline');
+
+  if (btn) {
+    var gotoPage = parseInt(btn.dataset["goto"]);
+    _views_searchView__WEBPACK_IMPORTED_MODULE_2__["clearList"]();
+    _views_searchView__WEBPACK_IMPORTED_MODULE_2__["renderResult"](state.search.result, gotoPage);
+  }
+}); //RECIPE CONTROLLER
+
+var controlRecipe =
+/*#__PURE__*/
+function () {
+  var _ref2 = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee2() {
+    var id;
+    return regeneratorRuntime.wrap(function _callee2$(_context2) {
+      while (1) {
+        switch (_context2.prev = _context2.next) {
+          case 0:
+            //Get ID from url
+            id = window.location.hash.replace('#', '');
+            console.log(id);
+
+            if (!id) {
+              _context2.next = 20;
+              break;
+            }
+
+            //Prepare UI for changes
+            Object(_views_base__WEBPACK_IMPORTED_MODULE_4__["renderLoader"])(_views_base__WEBPACK_IMPORTED_MODULE_4__["elements"].recipe);
+            _views_recipeView__WEBPACK_IMPORTED_MODULE_3__["clearRecipe"](); //highlight selected
+
+            if (state.search) _views_searchView__WEBPACK_IMPORTED_MODULE_2__["highlightSelected"](id); //Create new Recipe Object
+
+            state.recipe = new _modules_Recipe__WEBPACK_IMPORTED_MODULE_5__["default"](id); // window.r = state.recipe;
+
+            _context2.prev = 7;
+            _context2.next = 10;
+            return state.recipe.getRecipe();
+
+          case 10:
+            state.recipe.parseIngredients(); // Calculate Servings and Time
+
+            state.recipe.calcTime();
+            state.recipe.calcServings(); // Render Recipe
+
+            Object(_views_base__WEBPACK_IMPORTED_MODULE_4__["clearLoader"])();
+            _views_recipeView__WEBPACK_IMPORTED_MODULE_3__["renderRecipe"](state.recipe);
+            _context2.next = 20;
+            break;
+
+          case 17:
+            _context2.prev = 17;
+            _context2.t0 = _context2["catch"](7);
+            alert('Error processing recipe');
+
+          case 20:
+          case "end":
+            return _context2.stop();
+        }
+      }
+    }, _callee2, null, [[7, 17]]);
+  }));
+
+  return function controlRecipe() {
+    return _ref2.apply(this, arguments);
+  };
+}();
+
+['hashchange', 'load'].forEach(function (event) {
+  return window.addEventListener(event, controlRecipe);
+}); //Handling recipe buttons
+
+_views_base__WEBPACK_IMPORTED_MODULE_4__["elements"].recipe.addEventListener('click', function (e) {
+  if (e.target.matches('.btn-decrease, .btn-decrease *')) {
+    state.recipe.updateServings('dec');
+  } else if (e.target.matches('.btn-increase, .btn-increase *')) {
+    state.recipe.updateServings('inc');
+  }
+
+  console.log(state.recipe);
+});
+
+/***/ }),
+
+/***/ "./src/js/modules/Recipe.js":
+/*!**********************************!*\
+  !*** ./src/js/modules/Recipe.js ***!
+  \**********************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Recipe; });
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+
+
+var Recipe =
+/*#__PURE__*/
+function () {
+  function Recipe(id) {
+    _classCallCheck(this, Recipe);
+
+    this.id = id;
+  }
+
+  _createClass(Recipe, [{
+    key: "getRecipe",
+    value: function () {
+      var _getRecipe = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee() {
+        var apiKey, res;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                apiKey = '50c3adea60eb6dc5a272c99d394cfd62';
+                _context.prev = 1;
+                _context.next = 4;
+                return axios__WEBPACK_IMPORTED_MODULE_0___default()("https://www.food2fork.com/api/get?key=".concat(apiKey, "&rId=").concat(this.id));
+
+              case 4:
+                res = _context.sent;
+                this.title = res.data.recipe.title;
+                this.author = res.data.recipe.publisher;
+                this.img = res.data.recipe.image_url;
+                this.url = res.data.recipe.source_url;
+                this.ingredients = res.data.recipe.ingredients;
+                _context.next = 16;
+                break;
+
+              case 12:
+                _context.prev = 12;
+                _context.t0 = _context["catch"](1);
+                console.log(_context.t0);
+                alert('Something went wrong');
+
+              case 16:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this, [[1, 12]]);
+      }));
+
+      function getRecipe() {
+        return _getRecipe.apply(this, arguments);
+      }
+
+      return getRecipe;
+    }()
+  }, {
+    key: "calcTime",
+    value: function calcTime() {
+      //Assuming that we need 15 min for each 3 ingredients
+      var numIng = this.ingredients.length;
+      var periods = Math.ceil(numIng / 3);
+      this.time = periods * 15;
+    }
+  }, {
+    key: "calcServings",
+    value: function calcServings() {
+      this.servings = 4;
+    }
+  }, {
+    key: "parseIngredients",
+    value: function parseIngredients() {
+      var unitsLong = ['tablespoons', 'tablespoon', 'ounces', 'ounce', 'teaspoons', 'teaspoon', 'cups', 'pounds'];
+      var unitsShort = ['tbsp', 'tbsp', 'oz', 'oz', 'tsp', 'tsp', 'cup', 'pound'];
+      var units = [].concat(unitsShort, ['kg', 'gr']);
+      var newIngredients = this.ingredients.map(function (el) {
+        //Uniform units
+        var ingredient = el.toLowerCase(); //remove ()
+
+        unitsLong.forEach(function (el, index) {
+          ingredient = ingredient.replace(/ *\([^)]*\) */g, ' ');
+        }); //parse ingredients into count unit and ingredient
+
+        var arrIng = ingredient.split(' ');
+        var unitIndex = arrIng.findIndex(function (el) {
+          return units.includes(el);
+        });
+        var objectIng;
+
+        if (unitIndex > -1) {
+          //There is a unit
+          //fe. 4 1/2 cups, arrCount is ['4', '1/2'] --> eval(4+1/2) --> 4.5
+          var arrCount = arrIng.slice(0, unitIndex);
+          var count;
+
+          if (arrCount.length === 1) {
+            count = eval(arrIng[0].replace('-', '+'));
+          } else {
+            count = eval(arrIng.slice(0, unitIndex).join('+'));
+          }
+
+          objectIng = {
+            count: count,
+            unit: arrIng[unitIndex],
+            ingredient: arrIng.slice(unitIndex + 1).join(' ')
+          };
+        } else if (parseInt(arrIng[0])) {
+          //there is no unit, but first element is a number
+          objectIng = {
+            count: parseInt(arrIng[0]),
+            unit: '',
+            ingredient: arrIng.slice(1).join(' ')
+          };
+        } else if (unitIndex === -1) {
+          //there is no unit
+          objectIng = {
+            count: 1,
+            unit: '',
+            ingredient: ingredient
+          };
+        }
+
+        return objectIng;
+      });
+      this.ingredients = newIngredients;
+    }
+  }, {
+    key: "updateServings",
+    value: function updateServings(type) {
+      var _this = this;
+
+      // Servings
+      var newServings = type === 'dec' ? this.servings - 1 : this.servings + 1; // Ingredients
+
+      this.ingredients.forEach(function (ing) {
+        ing.count *= newServings / _this.servings;
+      });
+      this.servings = newServings;
+    }
+  }]);
+
+  return Recipe;
+}();
+
+
 
 /***/ }),
 
@@ -12742,7 +13388,7 @@ function () {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                apiKey = 'e00ba54c1eddefd2894f1c5d1daf23a2';
+                apiKey = '50c3adea60eb6dc5a272c99d394cfd62';
                 _context.prev = 1;
                 _context.next = 4;
                 return axios__WEBPACK_IMPORTED_MODULE_0___default()("https://www.food2fork.com/api/search?key=".concat(apiKey, "&q=").concat(this.query));
@@ -12799,7 +13445,8 @@ var elements = {
   searchInput: document.querySelector('.search__field'),
   searchResultList: document.querySelector('.results__list'),
   searchRes: document.querySelector('.results'),
-  searchResPages: document.querySelector('.results__pages')
+  searchResPages: document.querySelector('.results__pages'),
+  recipe: document.querySelector('.recipe')
 };
 var renderLoader = function renderLoader(parent) {
   var loader = "\n      <div class=\"loader\">\n           <svg>\n                <use href=\"img/icons.svg#icon-cw\"></use>\n           </svg>\n      </div>\n  ";
@@ -12812,11 +13459,78 @@ var clearLoader = function clearLoader() {
 
 /***/ }),
 
+/***/ "./src/js/views/recipeView.js":
+/*!************************************!*\
+  !*** ./src/js/views/recipeView.js ***!
+  \************************************/
+/*! exports provided: clearRecipe, renderRecipe */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "clearRecipe", function() { return clearRecipe; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "renderRecipe", function() { return renderRecipe; });
+/* harmony import */ var _base__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./base */ "./src/js/views/base.js");
+/* harmony import */ var fractional__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! fractional */ "./node_modules/fractional/index.js");
+/* harmony import */ var fractional__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(fractional__WEBPACK_IMPORTED_MODULE_1__);
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+
+function _iterableToArrayLimit(arr, i) { if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) { return; } var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
+
+
+var clearRecipe = function clearRecipe() {
+  _base__WEBPACK_IMPORTED_MODULE_0__["elements"].recipe.innerHTML = '';
+};
+
+var formatCount = function formatCount(count) {
+  if (count) {
+    // count 2.5 --> 5/2 --> 2 1/2
+    // count 0.5 --1/2
+    var _count$toString$split = count.toString().split('.').map(function (el) {
+      return parseInt(el);
+    }),
+        _count$toString$split2 = _slicedToArray(_count$toString$split, 2),
+        _int = _count$toString$split2[0],
+        dec = _count$toString$split2[1];
+
+    if (!dec) return count;
+
+    if (_int === 0) {
+      var fr = new fractional__WEBPACK_IMPORTED_MODULE_1__["Fraction"](count);
+      return "".concat(fr.numerator, "/").concat(fr.denominator);
+    } else {
+      var _fr = new fractional__WEBPACK_IMPORTED_MODULE_1__["Fraction"](count - _int);
+
+      return "".concat(_int, " / ").concat(_fr.numerator, "/").concat(_fr.denominator);
+    }
+  }
+
+  return '';
+};
+
+var createIngredient = function createIngredient(ingredient) {
+  return "\n<li class=\"recipe__item\">\n    <svg class=\"recipe__icon\">\n         <use href=\"img/icons.svg#icon-check\"></use>\n    </svg>\n    <div class=\"recipe__count\">".concat(formatCount(ingredient.count), "</div>\n    <div class=\"recipe__ingredient\">\n        <span class=\"recipe__unit\">").concat(ingredient.unit, "</span>").concat(ingredient.ingredient, "\n    </div>\n</li>\n");
+};
+
+var renderRecipe = function renderRecipe(recipe) {
+  var markup = "\n            <figure class=\"recipe__fig\">\n                <img src=\"".concat(recipe.img, "\" alt=\"").concat(recipe.title, "\" class=\"recipe__img\">\n                <h1 class=\"recipe__title\">\n                    <span>").concat(recipe.title, "</span>\n                </h1>\n            </figure>\n            \n            <div class=\"recipe__details\">\n                <div class=\"recipe__info\">\n                    <svg class=\"recipe__info-icon\">\n                        <use href=\"img/icons.svg#icon-stopwatch\"></use>\n                    </svg>\n                    <span class=\"recipe__info-data recipe__info-data--minutes\">").concat(recipe.time, "</span>\n                    <span class=\"recipe__info-text\"> minutes</span>\n                </div>\n                <div class=\"recipe__info\">\n                    <svg class=\"recipe__info-icon\">\n                        <use href=\"img/icons.svg#icon-man\"></use>\n                    </svg>\n                    <span class=\"recipe__info-data recipe__info-data--people\">").concat(recipe.servings, "</span>\n                    <span class=\"recipe__info-text\"> servings</span>\n\n                    <div class=\"recipe__info-buttons\">\n                        <button class=\"btn-tiny btn-decrease\">\n                            <svg>\n                                <use href=\"img/icons.svg#icon-circle-with-minus\"></use>\n                            </svg>\n                        </button>\n                        <button class=\"btn-tiny btn-increase\">\n                            <svg>\n                                <use href=\"img/icons.svg#icon-circle-with-plus\"></use>\n                            </svg>\n                        </button>\n                    </div>\n\n                </div>\n                <button class=\"recipe__love\">\n                    <svg class=\"header__likes\">\n                        <use href=\"img/icons.svg#icon-heart-outlined\"></use>\n                    </svg>\n                </button>\n            </div>\n            <div class=\"recipe__ingredients\">\n                <ul class=\"recipe__ingredient-list\">\n                    ").concat(recipe.ingredients.map(function (el) {
+    return createIngredient(el);
+  }).join(''), "\n                </ul>\n\n                <button class=\"btn-small recipe__btn\">\n                    <svg class=\"search__icon\">\n                        <use href=\"img/icons.svg#icon-shopping-cart\"></use>\n                    </svg>\n                    <span>Add to shopping list</span>\n                </button>\n            </div>\n\n            <div class=\"recipe__directions\">\n                <h2 class=\"heading-2\">How to cook it</h2>\n                <p class=\"recipe__directions-text\">\n                    This recipe was carefully designed and tested by\n                    <span class=\"recipe__by\">").concat(recipe.author, "</span>. Please check out directions at their website.\n                </p>\n                <a class=\"btn-small recipe__btn\" href=\"").concat(recipe.url, "\" target=\"_blank\">\n                    <span>Directions</span>\n                    <svg class=\"search__icon\">\n                        <use href=\"img/icons.svg#icon-triangle-right\"></use>\n                    </svg>\n\n                </a>\n            </div>\n");
+  _base__WEBPACK_IMPORTED_MODULE_0__["elements"].recipe.insertAdjacentHTML('afterbegin', markup);
+};
+
+/***/ }),
+
 /***/ "./src/js/views/searchView.js":
 /*!************************************!*\
   !*** ./src/js/views/searchView.js ***!
   \************************************/
-/*! exports provided: getInput, clearInput, clearList, renderResult */
+/*! exports provided: getInput, clearInput, clearList, highlightSelected, renderResult */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -12824,6 +13538,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "getInput", function() { return getInput; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "clearInput", function() { return clearInput; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "clearList", function() { return clearList; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "highlightSelected", function() { return highlightSelected; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "renderResult", function() { return renderResult; });
 /* harmony import */ var _base__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./base */ "./src/js/views/base.js");
 
@@ -12835,6 +13550,14 @@ var clearInput = function clearInput() {
 };
 var clearList = function clearList() {
   _base__WEBPACK_IMPORTED_MODULE_0__["elements"].searchResultList.innerHTML = '';
+  _base__WEBPACK_IMPORTED_MODULE_0__["elements"].searchResPages.innerHTML = '';
+};
+var highlightSelected = function highlightSelected(id) {
+  var resultsArr = document.querySelectorAll('.results__link');
+  resultsArr.forEach(function (el) {
+    return el.classList.remove('results__link--active');
+  });
+  document.querySelector("a[href*=\"".concat(id, "\"]")).classList.add('results__link--active');
 };
 
 var limitRecipeTitle = function limitRecipeTitle(title) {
@@ -12858,10 +13581,11 @@ var limitRecipeTitle = function limitRecipeTitle(title) {
 var renderRecipe = function renderRecipe(recipe) {
   var markup = "\n   <li>\n       <a class=\"results__link\" href=\"#".concat(recipe.recipe_id, "\">\n           <figure class=\"results__fig\">\n                <img src=\"").concat(recipe.image_url, "\" alt=\"").concat(recipe.title, "\">\n           </figure>\n           <div class=\"results__data\">\n                <h4 class=\"results__name\">").concat(limitRecipeTitle(recipe.title), "</h4>\n                <p class=\"results__author\">").concat(recipe.publisher, "</p>\n           </div>\n       </a>\n   </li>\n  \n  ");
   _base__WEBPACK_IMPORTED_MODULE_0__["elements"].searchResultList.insertAdjacentHTML('beforeend', markup);
-};
+}; //all pagination functions
+
 
 var createButton = function createButton(page, type) {
-  return "\n  <button class=\"btn-inline results__btn--".concat(type, "\" data-goto=\"").concat(type === 'prev' ? page - 1 : page + 1, "\">\n      <svg class=\"search__icon\">\n           <use href=\"img/icons.svg#icon-triangle-").concat(type === 'prev' ? 'left' : 'right', "\"></use>\n      </svg>\n      <span>").concat(type === 'prev' ? page - 1 : page + 1, "</span>\n  </button>\n");
+  return "\n  <button class=\"btn-inline results__btn--".concat(type, "\" data-goto=\"").concat(type === 'prev' ? page - 1 : page + 1, "\">\n      <svg class=\"search__icon\">\n           <use href=\"img/icons.svg#icon-triangle-").concat(type === 'prev' ? 'left' : 'right', "\"></use>\n      </svg>\n      <span>Page ").concat(type === 'prev' ? page - 1 : page + 1, "</span>\n  </button>\n");
 };
 
 var renderButtons = function renderButtons(page, numResults, resPerPage) {
