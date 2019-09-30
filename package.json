@@ -27,12 +27,14 @@
     "webpack-dev-server": "^3.8.0"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.6.0"
+    "@babel/polyfill": "^7.6.0",
+    "axios": "^0.19.0",
+    "fractional": "^1.0.0",
+    "uniqid": "^5.0.3"
   },
   "browserslist": [
     "defaults",
-    "not ie < 11",
-    "last 5 versions",
+    "last 3 versions",
     "> 1%",
     "iOS 7",
     "last 3 iOS versions"
