@@ -5,7 +5,7 @@ export default class Recipe {
         this.id = id;
     }
     async getRecipe () {
-        const apiKey = '6e8fd3af7e48db3af76e5a2684414a51';
+        const apiKey = '50c3adea60eb6dc5a272c99d394cfd62';
         try {
             const res = await axios (`https://www.food2fork.com/api/get?key=${apiKey}&rId=${this.id}`);
             this.title = res.data.recipe.title;
