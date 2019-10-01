@@ -1,7 +1,8 @@
 import style from '../sass/main.scss';
 import Search from "./modules/Search";
 import * as SearchView from "./views/searchView";
-import * as RecipeView from "./views/recipeView"
+import * as RecipeView from "./views/recipeView";
+import * as ListView from "./views/listView";
 import {elements, renderLoader, clearLoader } from "./views/base";
 import Recipe from "./modules/Recipe";
 import List from "./modules/List";
@@ -13,11 +14,10 @@ import List from "./modules/List";
 // - shopping list object
 // - linked recipes
 const state = {};
-
+window.s = state;
 //SEARCH CONTROLLER
 const controlSearch = async () => {
   const query = SearchView.getInput();
-    console.log(query);
 
     if (query) {
         //add new object to state
@@ -33,7 +33,6 @@ const controlSearch = async () => {
             SearchView.renderResult(state.search.result);
             clearLoader();
         } catch (e) {
-            console.log(e);
             alert('Something went wrong...');
             clearLoader();
         }
@@ -60,7 +59,6 @@ elements.searchResPages.addEventListener('click', evt => {
 const controlRecipe = async () => {
     //Get ID from url
     const id = window.location.hash.replace('#', '');
-    console.log(id);
     if (id) {
         //Prepare UI for changes
         renderLoader(elements.recipe);
@@ -70,7 +68,6 @@ const controlRecipe = async () => {
         if (state.search) SearchView.highlightSelected(id);
         //Create new Recipe Object
         state.recipe = new Recipe(id);
-        // window.r = state.recipe;
         try {
             //get recipe data and parse ingredients
             await state.recipe.getRecipe();
@@ -91,6 +88,31 @@ const controlRecipe = async () => {
 
 //Handling recipe buttons
 
+//List controler
+
+const controlList = () => {
+    //create new List if there is not any
+    if(!state.list) state.list = new List();
+    //add each ingredient to the list and UI
+    state.recipe.ingredients.forEach(el => {
+        const item = state.list.addItem(el.count, el.unit, el.ingredient);
+        ListView.renderItem(item);
+    })
+};
+
+elements.shopping.addEventListener('click', e => {
+     const id = e.target.closest('.shopping__item').dataset.itemid;
+
+     //delete from the list and UI
+    if(e.target.matches('.shopping__delete, .shopping__delete *')) {
+        state.list.deleteItem(id);
+        ListView.deleteItem(id);
+    } else if (e.target.matches('#count-value')) {
+        const val = parseFloat(e.target.value);
+        state.list.updateCount(id,val);
+    }
+});
+
 elements.recipe.addEventListener('click', e => {
     if(e.target.matches('.btn-decrease, .btn-decrease *')) {
         if(state.recipe.servings >1) {
@@ -100,6 +122,8 @@ elements.recipe.addEventListener('click', e => {
     } else if (e.target.matches('.btn-increase, .btn-increase *')) {
         state.recipe.updateServings('inc');
         RecipeView.updateServingsIngredients(state.recipe)
+    } else if (e.target.matches('#recipe-add, #recipe-add *')) {
+        controlList();
     }
 });
 
