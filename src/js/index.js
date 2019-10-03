@@ -3,6 +3,7 @@ import Search from "./modules/Search";
 import * as SearchView from "./views/searchView";
 import * as RecipeView from "./views/recipeView";
 import * as ListView from "./views/listView";
+import * as LikesView from './views/likesView'
 import {elements, renderLoader, clearLoader } from "./views/base";
 import Recipe from "./modules/Recipe";
 import List from "./modules/List";
@@ -15,7 +16,6 @@ import Likes from "./modules/Likes";
 // - shopping list object
 // - linked recipes
 const state = {};
-
 //SEARCH CONTROLLER
 const controlSearch = async () => {
   const query = SearchView.getInput();
@@ -79,7 +79,7 @@ const controlRecipe = async () => {
             state.recipe.calcServings();
             // Render Recipe
             clearLoader();
-            RecipeView.renderRecipe(state.recipe);
+            RecipeView.renderRecipe(state.recipe, state.likes.isLiked(id));
         } catch (e) {
             alert('Error processing recipe')
         }
@@ -100,6 +100,7 @@ const controlList = () => {
     })
 };
 
+
 //Likes controller
 const controlLikes = () => {
     if (!state.likes) state.likes = new Likes();
@@ -108,15 +109,27 @@ const controlLikes = () => {
     //user has not liked recipe
     if(!state.likes.isLiked(curId)) {
         const newLike = state.likes.addLike(curId, state.recipe.title,state.recipe.author, state.recipe.img);
-
-        console.log(state.likes);
+        LikesView.toggleLikedBtn(true);
+        LikesView.renderLike(newLike);
         //user liked recipe
     } else {
         state.likes.deleteLike(curId);
-
-        console.log(state.likes);
+        LikesView.toggleLikedBtn(false);
+        LikesView.deleteLike(curId);
     }
+    LikesView.toggleLikeMenu(state.likes.getNumLikes());
 };
+
+//read data from localstorage
+
+const readData = () => {
+    state.likes = new Likes();
+    state.likes.retrieveData();
+    LikesView.toggleLikeMenu(state.likes.getNumLikes());
+    state.likes.likes.forEach(like => LikesView.renderLike(like));
+};
+
+window.addEventListener('load', readData);
 
 //Handling recipe buttons
 elements.shopping.addEventListener('click', e => {
